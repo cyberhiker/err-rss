@@ -1,4 +1,5 @@
 import os
+import os.path as path
 import time
 import threading
 import configparser
@@ -14,7 +15,11 @@ from errbot import BotPlugin, botcmd, arg_botcmd
 
 #: Path to ini file for containing username and password by wildcard domain.
 CONFIG_FILE = '~/.err-rss.ini'
-
+CONFIG_FILEPATH_CHOICES = ['~/.err-rss/config.ini',
+                           '/etc/errbot/err-rss.ini',
+                           '/etc/errbot/err-rss/err-rss.ini',
+                           '/etc/errbot/err-rss/config.ini',
+                           ]
 
 def since(target_time):
     target_time = arrow.get(target_time)
@@ -44,10 +49,17 @@ class Rss(BotPlugin):
     INTERVAL = 20
     FEEDS = {}
 
+    def get_config_filepath(self):
+        if path.exists(CONFIG_FILE):
+            return CONFIG_FILE
+        for path in CONFIG_FILEPATH_CHOICES:
+            if path.exists(path):
+                return path
+
     def activate(self):
         super().activate()
         self.session = requests.Session()
-        self.read_ini(CONFIG_FILE)
+        self.read_ini(self.get_config_filepath())
         # Manually use a timer, since the poller implementation in errbot
         # breaks if you try to change the polling interval.
         self.checker = None
@@ -110,6 +122,55 @@ class Rss(BotPlugin):
             self.log.info('Scheduling disabled.')
             self.stop_checking_feeds()
 
+    def _django_csrf_login(self, login_url, username, password, next_url):
+        """ Perform CSRF authentication on a Django application."""
+
+        login_url = 'https://helpdesk.europython.eu/login/'
+        next_url = 'https://helpdesk.europython.eu/rss/recent_activity/'
+
+        # TODO: add to ini file
+        # login_url = https://helpdesk.europython.eu/login/
+        # auth_type = django_csrf
+
+        # authentication
+        csrftoken = self.session.get(login_url).cookies['csrftoken']
+
+        login_data = dict(username=username,
+                          password=password,
+                          csrfmiddlewaretoken=csrftoken,
+                          next=next_url)
+
+        # get response from next_url
+        resp = self.session.post(login_url,
+                                 data=login_data,
+                                 headers=dict(Referer=login_url))
+        return resp
+
+    def login(self, config, dest_url):
+        auth_type = config['auth_type']
+        if 'auth_type' == 'django_csrf':
+            return self._django_csrf_login(config['login_url'],
+                                           config['username'],
+                                           config['password'],
+                                           dest_url)
+        else:
+            raise ValueError('Unrecognized value for auth_type: '
+                             '{}.'.format(config['auth_type']))
+
+    def _read_url(self, data):
+        config = data['config']
+
+        if 'auth_type' in config:
+            resp = self.login(data['config'], next_url=data['url'])
+
+        else:
+            if 'username' in config and 'password' in config:
+                get_creds = itemgetter('username', 'password')
+                self.session.auth = get_creds(config)
+            resp = session.get(data['url'])
+
+        return resp
+
     def read_feed(self, data, tries=3, patience=1):
         """Read the RSS/Atom feed at the given url.
 
@@ -120,22 +181,20 @@ class Rss(BotPlugin):
         :param int patience: number of seconds to wait in between tries
         :return: parsed feed or None
         """
-        if 'username' in data['config'] and 'password' in data['config']:
-            get_creds = itemgetter('username', 'password')
-            self.session.auth = get_creds(data['config'])
-
         tries_left = tries
         while tries_left:
             try:
-                response = self.session.get(data['url'])
+                response = self._read_url(data)
                 response.raise_for_status()
                 feed = feedparser.parse(response.text)
                 assert 'title' in feed['feed']
-                return feed
             except Exception as e:
                 self.log.error(str(e))
-            tries_left -= 1
-            time.sleep(patience)
+            else:
+                return feed
+            finally:
+                tries_left -= 1
+                time.sleep(patience)
         return None
 
     def check_feeds(self, repeat=True):
