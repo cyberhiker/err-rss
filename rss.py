@@ -35,8 +35,24 @@ def read_date(dt):
     return arrow.get(dparser.parse(dt))
 
 
-def django_csrf_login(session, login_url, username, password, next_url):
-    """ Perform CSRF authentication on a Django application.
+def django_csrf_login(session, login_url, username, password, next_url=None):
+    """ Perform standard authentication with CSRF on a Django application.
+
+    :param session: requests.Session
+
+    :param login_url: str
+        The URL where the login is performed.
+
+    :param username: str
+
+    :param password: str
+
+    :param next_url: str, optional
+        The URL from where you want to pick information.
+        Will return the response from the login_url if None.
+
+    :returns: requests.Response
+        The response from the last POST.
 
     :note: `session` will be modified.
     """
@@ -48,6 +64,9 @@ def django_csrf_login(session, login_url, username, password, next_url):
 
     # authentication
     csrftoken = session.get(login_url).cookies['csrftoken']
+
+    if next_url is None:
+        next_url = '/'
 
     login_data = dict(username=username,
                       password=password,
