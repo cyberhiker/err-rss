@@ -35,6 +35,32 @@ def read_date(dt):
     return arrow.get(dparser.parse(dt))
 
 
+def django_csrf_login(session, login_url, username, password, next_url):
+    """ Perform CSRF authentication on a Django application.
+
+    :note: `session` will be modified.
+    """
+    #next_url = 'https://helpdesk.europython.eu/rss/recent_activity/'
+
+    # TODO: add to ini file
+    # login_url = https://helpdesk.europython.eu/login/
+    # auth_type = django_csrf
+
+    # authentication
+    csrftoken = session.get(login_url).cookies['csrftoken']
+
+    login_data = dict(username=username,
+                      password=password,
+                      csrfmiddlewaretoken=csrftoken,
+                      next=next_url)
+
+    # get response from next_url
+    resp = session.post(login_url,
+                        data=login_data,
+                        headers=dict(Referer=login_url))
+    return resp
+
+
 def try_method(f):
     try:
         return f()
@@ -122,37 +148,14 @@ class Rss(BotPlugin):
             self.log.info('Scheduling disabled.')
             self.stop_checking_feeds()
 
-    def _django_csrf_login(self, login_url, username, password, next_url):
-        """ Perform CSRF authentication on a Django application."""
-
-        login_url = 'https://helpdesk.europython.eu/login/'
-        next_url = 'https://helpdesk.europython.eu/rss/recent_activity/'
-
-        # TODO: add to ini file
-        # login_url = https://helpdesk.europython.eu/login/
-        # auth_type = django_csrf
-
-        # authentication
-        csrftoken = self.session.get(login_url).cookies['csrftoken']
-
-        login_data = dict(username=username,
-                          password=password,
-                          csrfmiddlewaretoken=csrftoken,
-                          next=next_url)
-
-        # get response from next_url
-        resp = self.session.post(login_url,
-                                 data=login_data,
-                                 headers=dict(Referer=login_url))
-        return resp
-
     def login(self, config, dest_url):
         auth_type = config['auth_type']
         if 'auth_type' == 'django_csrf':
-            return self._django_csrf_login(config['login_url'],
-                                           config['username'],
-                                           config['password'],
-                                           dest_url)
+            return django_csrf_login(self.session,
+                                     config['login_url'],
+                                     config['username'],
+                                     config['password'],
+                                     dest_url)
         else:
             raise ValueError('Unrecognized value for auth_type: '
                              '{}.'.format(config['auth_type']))
