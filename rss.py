@@ -1,5 +1,6 @@
 import os
 import os.path as path
+import logging
 import time
 import threading
 import configparser
@@ -15,7 +16,8 @@ from errbot import BotPlugin, botcmd, arg_botcmd
 
 #: Path to ini file for containing username and password by wildcard domain.
 CONFIG_FILE = '~/.err-rss.ini'
-CONFIG_FILEPATH_CHOICES = ['~/.err-rss/config.ini',
+CONFIG_FILEPATH_CHOICES = [path.join(path.dirname(__file__), 'err-rss.ini'),
+                           '~/.err-rss/config.ini',
                            '/etc/errbot/err-rss.ini',
                            '/etc/errbot/err-rss/err-rss.ini',
                            '/etc/errbot/err-rss/config.ini',
@@ -56,12 +58,6 @@ def django_csrf_login(session, login_url, username, password, next_url=None):
 
     :note: `session` will be modified.
     """
-    #next_url = 'https://helpdesk.europython.eu/rss/recent_activity/'
-
-    # TODO: add to ini file
-    # login_url = https://helpdesk.europython.eu/login/
-    # auth_type = django_csrf
-
     # authentication
     csrftoken = session.get(login_url).cookies['csrftoken']
 
@@ -84,7 +80,7 @@ def try_method(f):
     try:
         return f()
     except Exception as e:
-        self.log.error('Thread failed with: {}'.format(str(e)))
+        logging.error('Thread failed with: {}'.format(str(e)))
         return None
 
 
