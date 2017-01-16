@@ -401,13 +401,13 @@ class Rss(BotPlugin):
 def header_matches_url(header, url):
     # Here we compare the end of the domain and the start of the path (if
     # present) to the header.
-    __, domain, path, *__ = urlsplit(url)
+    __, domain, apath, *__ = urlsplit(url)
     parts = header.lstrip('*').split('/', 1)
-    path = os.path.lstrip('/')
+    apath = apath.lstrip('/')
     if len(parts) == 2:
         # Domain and path in header. Match the path starts and domain ends.
         header_domain, header_path = parts
-        return os.path.startswith(header_path) and domain.endswith(header_domain)
+        return apath.startswith(header_path) and domain.endswith(header_domain)
     else:
         # Domain without os.path. Match the domain ends.
         header_domain, = parts
