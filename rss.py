@@ -168,11 +168,11 @@ class Rss(BotPlugin):
     def login(self, config, dest_url):
         auth_type = config['auth_type']
         if 'auth_type' == 'django_csrf':
-            return django_csrf_login(self.session,
-                                     config['login_url'],
-                                     config['username'],
-                                     config['password'],
-                                     dest_url)
+            return django_csrf_login(session=self.session,
+                                     login_url=config['login_url'],
+                                     username=config['username'],
+                                     password=config['password'],
+                                     next_url=dest_url)
         else:
             raise ValueError('Unrecognized value for auth_type: '
                              '{}.'.format(config['auth_type']))
