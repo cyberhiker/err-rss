@@ -187,7 +187,7 @@ class Rss(BotPlugin):
             if 'username' in config and 'password' in config:
                 get_creds = itemgetter('username', 'password')
                 self.session.auth = get_creds(config)
-            resp = session.get(data['url'])
+            resp = self.session.get(data['url'])
 
         return resp
 
