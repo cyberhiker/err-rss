@@ -167,7 +167,7 @@ class Rss(BotPlugin):
 
     def login(self, config, dest_url):
         auth_type = config['auth_type']
-        if 'auth_type' == 'django_csrf':
+        if auth_type == 'django_csrf':
             return django_csrf_login(session=self.session,
                                      login_url=config['login_url'],
                                      username=config['username'],
