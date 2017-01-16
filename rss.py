@@ -181,7 +181,7 @@ class Rss(BotPlugin):
         config = data['config']
 
         if 'auth_type' in config:
-            resp = self.login(data['config'], next_url=data['url'])
+            resp = self.login(data['config'], dest_url=data['url'])
 
         else:
             if 'username' in config and 'password' in config:
