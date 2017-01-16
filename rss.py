@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import os
 import os.path as path
 import logging
@@ -112,17 +114,17 @@ class Rss(BotPlugin):
         super().deactivate()
         self.stop_checking_feeds()
 
-    def read_ini(self, path):
+    def read_ini(self, filepath):
         """Read and store the configuration in the ini file at filepath.
 
         Note: this method silently fails if given a nonsensicle filepath, but
         it does log the number of sections it read.
 
-        :param str path: path to the ini file to use for configuration
+        :param str filepath: path to the ini file to use for configuration
         """
         self.ini = configparser.ConfigParser()
-        self.ini.read(os.path.expanduser(path))
-        self.log.info('Read {} sections from {}'.format(len(self.ini), path))
+        self.ini.read(path.expanduser(filepath))
+        self.log.info('Read {} sections from {}'.format(len(self.ini), filepath))
 
     def schedule_next_check(self):
         """Schedule the next feed check.
