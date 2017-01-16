@@ -306,7 +306,7 @@ class Rss(BotPlugin):
         msg = '[{title}]({link}) --- {when}'
         for entry in sorted(entries_to_report, key=published_date):
             for room in entry['rooms'].values():
-                self.send(room.frm, msg.format(**entry), message_type=room.type)
+                self.send(room.frm, msg.format(**entry))
 
         # Record the time needed for the current set of feeds.
         end_time = arrow.get()
