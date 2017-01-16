@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import os
-import os.path as path
 import logging
 import time
 import threading
@@ -18,7 +17,7 @@ from errbot import BotPlugin, botcmd, arg_botcmd
 
 #: Path to ini file for containing username and password by wildcard domain.
 CONFIG_FILE = '~/.err-rss.ini'
-CONFIG_FILEPATH_CHOICES = [path.join(path.dirname(__file__), 'err-rss.ini'),
+CONFIG_FILEPATH_CHOICES = [os.path.join(os.path.dirname(__file__), 'err-rss.ini'),
                            '~/.err-rss/config.ini',
                            '/etc/errbot/err-rss.ini',
                            '/etc/errbot/err-rss/err-rss.ini',
@@ -26,10 +25,10 @@ CONFIG_FILEPATH_CHOICES = [path.join(path.dirname(__file__), 'err-rss.ini'),
                            ]
 
 def get_config_filepath():
-    if path.exists(CONFIG_FILE):
+    if os.path.exists(CONFIG_FILE):
         return CONFIG_FILE
     for path in CONFIG_FILEPATH_CHOICES:
-        if path.exists(path):
+        if os.path.exists(path):
             return path
 
 
@@ -116,7 +115,7 @@ class Rss(BotPlugin):
         self.stop_checking_feeds()
 
     def read_ini(self, filepath):
-        """Read and store the configuration in the ini file at filepath.
+        """Read and store the configuration in the ini file at fileos.path.
 
         Note: this method silently fails if given a nonsensicle filepath, but
         it does log the number of sections it read.
@@ -124,7 +123,7 @@ class Rss(BotPlugin):
         :param str filepath: path to the ini file to use for configuration
         """
         self.ini = configparser.ConfigParser()
-        self.ini.read(path.expanduser(filepath))
+        self.ini.read(os.path.expanduser(filepath))
         self.log.info('Read {} sections from {}'.format(len(self.ini), filepath))
 
     def schedule_next_check(self):
@@ -404,12 +403,12 @@ def header_matches_url(header, url):
     # present) to the header.
     __, domain, path, *__ = urlsplit(url)
     parts = header.lstrip('*').split('/', 1)
-    path = path.lstrip('/')
+    path = os.path.lstrip('/')
     if len(parts) == 2:
         # Domain and path in header. Match the path starts and domain ends.
         header_domain, header_path = parts
-        return path.startswith(header_path) and domain.endswith(header_domain)
+        return os.path.startswith(header_path) and domain.endswith(header_domain)
     else:
-        # Domain without path. Match the domain ends.
+        # Domain without os.path. Match the domain ends.
         header_domain, = parts
         return domain.endswith(header_domain)
