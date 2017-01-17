@@ -106,20 +106,24 @@ class Rss(BotPlugin):
                                 configuration.items()))
         else:
             config = CONFIG_TEMPLATE
-        super(Rss, self).configure(config)
+        super().configure(config)
+        self.initialize()
 
     def get_configuration_template(self):
         return CONFIG_TEMPLATE
 
-    def activate(self):
-        super().activate()
-        self.session = requests.Session()
-        self.read_ini(get_config_filepath())
-        # Manually use a timer, since the poller implementation in errbot
-        # breaks if you try to change the polling interval.
+    def initialize():
         self['startup_date'] = self.config['START_DATE']
         self['interval'] = self.config['INTERVAL']
         self['feeds'] = {}
+
+    def activate(self):
+        super().activate()
+        # Manually use a timer, since the poller implementation in errbot
+        # breaks if you try to change the polling interval.
+
+        self.session = requests.Session()
+        self.read_ini(get_config_filepath())
 
         self.checker = None
         then = arrow.get()
