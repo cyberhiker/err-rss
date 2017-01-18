@@ -45,11 +45,6 @@ def read_date(dt):
     return arrow.get(dparser.parse(dt))
 
 
-def since(target_time):
-    target_time = read_date(target_time)
-    return lambda entry: read_date(published_date(entry)) > target_time
-
-
 def django_csrf_login(session, login_url, username, password, next_url=None):
     """ Perform standard authentication with CSRF on a Django application.
 
@@ -107,23 +102,17 @@ class Rss(BotPlugin):
         else:
             config = CONFIG_TEMPLATE
         super().configure(config)
-        self.initialize()
 
     def get_configuration_template(self):
         return CONFIG_TEMPLATE
 
-    def initialize(self):
-        self['startup_date'] = self.config['START_DATE']
-        self['interval'] = self.config['INTERVAL']
-        self['feeds'] = {}
-
     def activate(self):
         super().activate()
-        # Manually use a timer, since the poller implementation in errbot
-        # breaks if you try to change the polling interval.
         self.session = requests.Session()
         self.read_ini(get_config_filepath())
 
+        # Manually use a timer, since the poller implementation in errbot
+        # breaks if you try to change the polling interval.
         self.checker = None
         then = arrow.get()
         self.delta = arrow.get() - then
@@ -171,6 +160,9 @@ class Rss(BotPlugin):
     @property
     def feeds(self):
         """A dict with RSS feeds data."""
+        if 'feeds' not in self:
+             self['feeds'] = {}
+
         return self['feeds']
 
     def set_feed_data(self, feed_title, data):
@@ -193,18 +185,22 @@ class Rss(BotPlugin):
             feeds[feed_title]['last_check'] = date
 
     @property
+    def startup_date(self):
+        return read_date(self.config['START_DATE'])
+
+    @property
     def interval(self):
         """Number of seconds between checks for new feed entries."""
-        return self['interval']
+        return self.config['INTERVAL']
 
     @interval.setter
     def interval(self, value):
         if value > 0:
             self.log.info('New update interval: {}s'.format(value))
-            self['interval'] = value
+            self.config['INTERVAL'] = value
             self.schedule_next_check()
         else:
-            self['interval'] = 0
+            self.config['INTERVAL'] = 0
             self.log.info('Scheduling disabled.')
             self.stop_checking_feeds()
 
@@ -292,7 +288,7 @@ class Rss(BotPlugin):
         self.log.info(feed_count_msg.format(num_feeds))
 
         entries_to_report = []
-        for title, data in self.FEEDS.items():  # TODO: make this thread safe
+        for title, data in self.feeds.items():  # TODO: make this thread safe
             feed = self.read_feed(data)
             if not feed:
                 self.log.error('[{}] No feed found!'.format(title))
@@ -323,7 +319,12 @@ class Rss(BotPlugin):
                 oldest, *__, newest = entries
 
             # Find recent entries
-            is_recent = since(data['last_check'])
+            if data['last_check'] < self.startup_date:
+                start_date = self.startup_date
+            else:
+                start_date = data['last_check']
+
+            is_recent = lambda entry: published_date(entry) > start_date
             recent_entries = tuple(e for e in entries if is_recent(e))
             num_recent = len(recent_entries)
 
@@ -404,13 +405,14 @@ class Rss(BotPlugin):
             else:
                 entry_dates = [read_date(published_date(entry))
                                for entry in feed['entries']]
-                last_date = entry_dates.sort()[-1]
+                import pdb; pdb.set_trace()
+                last_date = sorted(entry_dates)[-1]
 
             data['last_check'] = last_date
             self.set_feed_data(title, data)
 
         # add the room where to report the feed
-        self.add_feed_to_room(title, message)
+        self.add_room_to_feed(title, message)
         self.log.info('Watching {!r} for {!s}'.format(title, message.frm))
 
         # Report new feed watch
