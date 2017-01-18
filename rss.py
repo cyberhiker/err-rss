@@ -25,7 +25,7 @@ CONFIG_FILEPATH_CHOICES = [os.path.join(os.path.dirname(__file__), 'err-rss.ini'
                            ]
 
 CONFIG_TEMPLATE = {'START_DATE': '01/01/2017',  # format: DD/MM/YYYY
-                   'INTERVAL': 1800}  # in seconds
+                   'INTERVAL': 15*60}
 
 
 def get_config_filepath():
@@ -161,7 +161,7 @@ class Rss(BotPlugin):
     def feeds(self):
         """A dict with RSS feeds data."""
         if 'feeds' not in self:
-             self['feeds'] = {}
+            self['feeds'] = {}
 
         return self['feeds']
 
