@@ -319,12 +319,7 @@ class Rss(BotPlugin):
                 oldest, *__, newest = entries
 
             # Find recent entries
-            if data['last_check'] < self.startup_date:
-                start_date = self.startup_date
-            else:
-                start_date = data['last_check']
-
-            is_recent = lambda entry: published_date(entry) > start_date
+            is_recent = lambda entry: published_date(entry) > data['last_check']
             recent_entries = tuple(e for e in entries if is_recent(e))
             num_recent = len(recent_entries)
 
@@ -405,9 +400,16 @@ class Rss(BotPlugin):
             else:
                 entry_dates = [read_date(published_date(entry))
                                for entry in feed['entries']]
-                last_date = sorted(entry_dates)[-1]
+                last_date = sorted(entry_dates)[0]
 
-            data['last_check'] = last_date
+            # check how the last date compares to the
+            # configured startup_date
+            if last_date < self.startup_date:
+                check_date = self.startup_date
+            else:
+                check_date = last_date
+
+            data['last_check'] = check_date
             self.set_feed_data(title, data)
 
         # add the room where to report the feed
