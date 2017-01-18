@@ -405,7 +405,6 @@ class Rss(BotPlugin):
             else:
                 entry_dates = [read_date(published_date(entry))
                                for entry in feed['entries']]
-                import pdb; pdb.set_trace()
                 last_date = sorted(entry_dates)[-1]
 
             data['last_check'] = last_date
