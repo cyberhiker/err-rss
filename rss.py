@@ -434,7 +434,7 @@ class Rss(BotPlugin):
             else:
                 found_msg = '[{}] Found {} entries since {}'
             about_then = check_date.humanize()
-            self.log.info(found_msg.format(num_recent, about_then))
+            self.log.info(found_msg.format(feed_title, num_recent, about_then))
         else:
             self.log.info('[{}] Found {} entries since {}, '
                           'but none since {}'.format(feed_title, num_entries,
