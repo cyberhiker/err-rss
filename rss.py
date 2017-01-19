@@ -524,7 +524,7 @@ class Rss(BotPlugin):
     @arg_botcmd('url', type=str)
     def rss_watch(self, message, url):
         """Watch a new feed by URL."""
-        self.rss_watch_from(message, url, date=self.startup_date)
+        self.rss_watchfrom(message, url, date=self.startup_date)
 
     @botcmd
     @arg_botcmd('title', type=str)
