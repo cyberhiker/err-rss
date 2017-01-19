@@ -524,6 +524,7 @@ class Rss(BotPlugin):
     @arg_botcmd('url', type=str)
     @arg_botcmd('date', type=str)
     def rss_watchfrom(self, message, url, date=None):
+        import pdb; pdb.set_trace()
         return self._watch_feed(message, url, check_date=read_date(date))
 
     @botcmd
