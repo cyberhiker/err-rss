@@ -444,15 +444,6 @@ class Rss(BotPlugin):
         for entry in entries:
             self.send(roomfeed.message.frm, msg.format(**entry))
 
-    def _get_check_date_for_new_roomfeed(self, feed_first_date):
-        if feed_first_date is None:
-            return arrow.now()
-
-        if feed_first_date < self.startup_date:
-            return self.startup_date
-
-        return feed_first_date
-
     def _register_roomfeed(self, feed_title, check_date, url, config, message):
         """
 
@@ -496,8 +487,8 @@ class Rss(BotPlugin):
     @botcmd
     @arg_botcmd('url', type=str)
     @arg_botcmd('date', type=str)
-    def rss_watch(self, message, url, date=None):
-        """Watch a new feed by URL."""
+    def rss_watch_from(self, message, url, date=None):
+        """Watch a new feed by URL and start checking date."""
         # Find the last matching ini section using the domain of the url.
         config = {}
         self.log.debug('Finding ini section for "{}"...'.format(url))
@@ -509,7 +500,6 @@ class Rss(BotPlugin):
                 self.log.debug('"{}" is not a match'.format(header))
 
         # Read in the feed.
-        #data = {'url': url, 'config': config, 'rooms': {}}
         feed = self.read_feed(url=url, config=config)
         if feed is None:
             return "Couldn't find a feed at {}".format(url)
@@ -518,8 +508,10 @@ class Rss(BotPlugin):
         feed_first_date = sorted(get_feed_dates(feed['entries']))[0]
         if date:
             check_date = date
+        elif feed_first_date:
+            check_date = feed_first_date
         else:
-            check_date = self._get_check_date_for_new_roomfeed(feed_first_date=feed_first_date)
+            check_date = arrow.now()
 
         # register it
         return self._register_roomfeed(feed_title=feed['feed']['title'],
@@ -527,6 +519,12 @@ class Rss(BotPlugin):
                                        url=url,
                                        config=config,
                                        message=message)
+
+    @botcmd
+    @arg_botcmd('url', type=str)
+    def rss_watch(self, message, url):
+        """Watch a new feed by URL."""
+        self.rss_watch_from(message, url, date=self.startup_date)
 
     @botcmd
     @arg_botcmd('title', type=str)
