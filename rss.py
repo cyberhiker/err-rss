@@ -221,7 +221,7 @@ class Rss(BotPlugin):
         # Create Feed object
         new_feed = Feed(feed_title, url, config)
 
-        with self.mutables('feed') as feeds:
+        with self.mutable('feed') as feeds:
             feeds[feed_title] = new_feed
 
     def add_room_to_feed(self, feed_title, message, check_date):
