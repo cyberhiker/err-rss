@@ -249,6 +249,18 @@ class Rss(BotPlugin):
 
         return self.feeds[feed_title].isin(room_id)
 
+    def _find_url_ini_config(self, url):
+        config = {}
+        self.log.debug('Finding ini section for "{}"...'.format(url))
+        for header, section in self.ini.items():
+            if header_matches_url(header, url):
+                config = dict(section)
+                self.log.debug('Matched "{}" to "{}"'.format(url, header))
+            else:
+                self.log.debug('"{}" is not a match'.format(header))
+
+        return config
+
     @property
     def startup_date(self):
         return read_date(self.config['START_DATE'])
@@ -433,7 +445,6 @@ class Rss(BotPlugin):
 
     def _send_entries_to_room(self, entries, roomfeed):
         """
-        :param self:
         :param List[dict] entries:
         :param RoomFeed roomfeed:
         :return:
@@ -471,30 +482,10 @@ class Rss(BotPlugin):
         self.log.info('Watching {!r} for {!s}'.format(feed_title, message.frm))
         return 'watching [{}]({})'.format(feed_title, url)
 
-    @botcmd
-    def rss_list(self, message, args):
-        """List the feeds being watched in this room."""
-        room_id = self._get_room_id(message)
-        room_feeds = (feed for feed_title, feed in self.feeds.items() if feed.isin(room_id))
-        for feed in room_feeds:
-            last_check = feed.roomfeeds[room_id].last_check.humanize()
-            yield '[{title}]({url}) {when}'.format(title=feed.name,
-                                                   url=feed.url,
-                                                   when=last_check)
-        else:
-            yield 'You have 0 feeds. Add one!'
-
     def _watch_feed(self, message, url, check_date=None):
         """Watch a new feed by URL and start checking date."""
         # Find the last matching ini section using the domain of the url.
-        config = {}
-        self.log.debug('Finding ini section for "{}"...'.format(url))
-        for header, section in self.ini.items():
-            if header_matches_url(header, url):
-                config = dict(section)
-                self.log.debug('Matched "{}" to "{}"'.format(url, header))
-            else:
-                self.log.debug('"{}" is not a match'.format(header))
+        config = self._find_url_ini_config(url)
 
         # Read in the feed.
         feed = self.read_feed(url=url, config=config)
@@ -517,6 +508,19 @@ class Rss(BotPlugin):
                                        message=message)
 
     @botcmd
+    def rss_list(self, message, args):
+        """List the feeds being watched in this room."""
+        room_id = self._get_room_id(message)
+        room_feeds = (feed for feed_title, feed in self.feeds.items() if feed.isin(room_id))
+        for feed in room_feeds:
+            last_check = feed.roomfeeds[room_id].last_check.humanize()
+            yield '[{title}]({url}) {when}'.format(title=feed.name,
+                                                   url=feed.url,
+                                                   when=last_check)
+        else:
+            yield 'You have 0 feeds. Add one!'
+
+    @botcmd
     @arg_botcmd('url', type=str)
     @arg_botcmd('date', type=str)
     def rss_watchfrom(self, message, url, date=None):
@@ -526,6 +530,7 @@ class Rss(BotPlugin):
     @arg_botcmd('url', type=str)
     def rss_watch(self, message, url):
         """Watch a new feed by URL."""
+        import pdb; pdb.set_trace()
         return self._watch_feed(message, url, check_date=self.startup_date)
 
     @botcmd
