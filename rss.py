@@ -215,7 +215,7 @@ class Rss(BotPlugin):
 
     @staticmethod
     def _get_room_id(message):
-        return message.frm.person.id
+        return message.frm.person
 
     def add_feed(self, feed_title, url, config):
         # Create Feed object
@@ -398,7 +398,7 @@ class Rss(BotPlugin):
 
         # for each room will report the corresponding entries
         for room_id, roomfeed in feed.roomfeeds.items():
-            self.log.info('[{}] Checking for entries for room {}.'.format(feed_title, room_id))
+            self.log.info('[{}] Checking for entries for room {}.'.format(feed_title, roomfeed.message.frm))
 
             recent_entries = self._pick_recent_entries_for_room(feed_title=feed_title,
                                                                 entries=entries,
@@ -530,7 +530,6 @@ class Rss(BotPlugin):
     @arg_botcmd('url', type=str)
     def rss_watch(self, message, url):
         """Watch a new feed by URL."""
-        import pdb; pdb.set_trace()
         return self._watch_feed(message, url, check_date=self.startup_date)
 
     @botcmd
