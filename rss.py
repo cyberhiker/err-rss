@@ -400,9 +400,9 @@ class Rss(BotPlugin):
         for room_id, roomfeed in feed.roomfeeds.items():
             self.log.info('[{}] Checking for entries for room {}.'.format(feed_title, roomfeed.message.frm))
 
-            recent_entries = self._pick_recent_entries_for_room(feed_title=feed_title,
-                                                                entries=entries,
-                                                                check_date=roomfeed.last_check)
+            recent_entries = self._pick_recent_entries_from(feed_title=feed_title,
+                                                            entries=entries,
+                                                            check_date=roomfeed.last_check)
             if recent_entries:
                 self._send_entries_to_room(recent_entries, roomfeed)
 
