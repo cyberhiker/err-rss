@@ -484,10 +484,7 @@ class Rss(BotPlugin):
         else:
             yield 'You have 0 feeds. Add one!'
 
-    @botcmd
-    @arg_botcmd('url', type=str)
-    @arg_botcmd('date', type=str)
-    def rss_watchfrom(self, message, url, date=None):
+    def _watch_feed(self, message, url, check_date=None):
         """Watch a new feed by URL and start checking date."""
         # Find the last matching ini section using the domain of the url.
         config = {}
@@ -506,12 +503,11 @@ class Rss(BotPlugin):
 
         # get the check date for this new feed
         feed_first_date = sorted(get_feed_dates(feed['entries']))[0]
-        if date:
-            check_date = date
-        elif feed_first_date:
-            check_date = feed_first_date
-        else:
-            check_date = arrow.now()
+        if check_date is None:
+            if feed_first_date:
+                check_date = feed_first_date
+            else:
+                check_date = arrow.now()
 
         # register it
         return self._register_roomfeed(feed_title=feed['feed']['title'],
@@ -522,9 +518,15 @@ class Rss(BotPlugin):
 
     @botcmd
     @arg_botcmd('url', type=str)
+    @arg_botcmd('date', type=str)
+    def rss_watchfrom(self, message, url, date=None):
+        return self._watch_feed(message, url, check_date=read_date(date))
+
+    @botcmd
+    @arg_botcmd('url', type=str)
     def rss_watch(self, message, url):
         """Watch a new feed by URL."""
-        self.rss_watchfrom(message, url, date=self.startup_date)
+        return self._watch_feed(message, url, check_date=self.startup_date)
 
     @botcmd
     @arg_botcmd('title', type=str)
