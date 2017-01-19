@@ -495,7 +495,7 @@ class Rss(BotPlugin):
 
     @botcmd
     @arg_botcmd('url', type=str)
-    @arg_botcmd('date', type=str, required=False)
+    @arg_botcmd('date', type=str)
     def rss_watch(self, message, url, date=None):
         """Watch a new feed by URL."""
         # Find the last matching ini section using the domain of the url.
