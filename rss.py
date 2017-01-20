@@ -215,10 +215,12 @@ class Rss(BotPlugin):
 
     @staticmethod
     def _get_room_id(message):
-        if message.chat['type'] == 'private':
-            return message.frm.id
+        """ Return a room ID to identify the feed reports destinations."""
+        # TODO: check here if the backend is Telegram
+        if hasattr(message.frm, 'room'):
+            return message.frm.room.id
 
-        return message.frm.room.id
+        return message.frm.room.person
 
 
     def add_feed(self, feed_title, url, config):
@@ -455,9 +457,11 @@ class Rss(BotPlugin):
         """
         # Report results from all feeds in chronological order. Note we can't
         # use yield/return here since there's no incoming message.
+        room_id = self._get_room_id(roomfeed.message)
+
         msg = '[{title}]({link}) --- {when}'
         for entry in entries:
-            self.send(roomfeed.message.frm, msg.format(**entry))
+            self.send(room_id, msg.format(**entry))
 
     def _register_roomfeed(self, feed_title, check_date, url, config, message):
         """
