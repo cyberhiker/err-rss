@@ -219,7 +219,18 @@ class Rss(BotPlugin):
             if hasattr(message.frm, 'room'):
                 return message.frm.room.id
 
-            return message.frm.room.person
+            return message.frm.person
+        else:
+            raise ValueError('This plugin has not been implemented for '
+                             'mode {}.'.format(self.mode))
+
+    def _get_sender(self, message):
+        """ Return a room ID to identify the feed reports destinations."""
+        if self.mode == 'telegram':
+            if hasattr(message.frm, 'room'):
+                return message.frm.room
+
+            return message.frm
         else:
             raise ValueError('This plugin has not been implemented for '
                              'mode {}.'.format(self.mode))
@@ -371,13 +382,13 @@ class Rss(BotPlugin):
         self.log.info(feed_count_msg.format(num_feeds))
 
         for feed_title, feed in self.feeds.items():  # TODO: make this thread safe
-            self._report_feed(feed_title, feed)
+            self._send_feed(feed_title, feed)
 
         # Record the time needed for the current set of feeds.
         end_time = arrow.get()
         self.delta = end_time - start_time
 
-    def _report_feed(self, feed_title, feed):
+    def _send_feed(self, feed_title, feed):
         """
         :param str title: title of the feed
         :param Feed feed: the feed object
@@ -458,11 +469,11 @@ class Rss(BotPlugin):
         """
         # Report results from all feeds in chronological order. Note we can't
         # use yield/return here since there's no incoming message.
-        room_id = self._get_room_id(roomfeed.message)
+        dest = self._get_sender(roomfeed.message)
 
         msg = '[{title}]({link}) --- {when}'
         for entry in entries:
-            self.send(room_id, msg.format(**entry))
+            self.send(dest, msg.format(**entry))
 
     def _register_roomfeed(self, feed_title, check_date, url, config, message):
         """
