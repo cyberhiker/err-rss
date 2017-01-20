@@ -213,15 +213,16 @@ class Rss(BotPlugin):
 
         return self['feeds']
 
-    @staticmethod
-    def _get_room_id(message):
+    def _get_room_id(self, message):
         """ Return a room ID to identify the feed reports destinations."""
-        # TODO: check here if the backend is Telegram
-        if hasattr(message.frm, 'room'):
-            return message.frm.room.id
+        if self.mode == 'telegram':
+            if hasattr(message.frm, 'room'):
+                return message.frm.room.id
 
-        return message.frm.room.person
-
+            return message.frm.room.person
+        else:
+            raise ValueError('This plugin has not been implemented for '
+                             'mode {}.'.format(self.mode))
 
     def add_feed(self, feed_title, url, config):
         # Create Feed object
