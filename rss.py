@@ -26,8 +26,7 @@ CONFIG_FILEPATH_CHOICES = [os.path.join(os.path.dirname(__file__), 'err-rss.ini'
                            ]
 
 CONFIG_TEMPLATE = {'START_DATE': '01/01/2017',  # format: DD/MM/YYYY
-                   'INTERVAL': 20} # 15*60
-
+                   'INTERVAL': 5*60}
 
 def get_config_filepath():
     if os.path.exists(CONFIG_FILE):
