@@ -26,7 +26,9 @@ CONFIG_FILEPATH_CHOICES = [os.path.join(os.path.dirname(__file__), 'err-rss.ini'
                            ]
 
 CONFIG_TEMPLATE = {'START_DATE': '01/01/2017',  # format: DD/MM/YYYY
-                   'INTERVAL': 5*60}
+                   'INTERVAL': 5*60,  # refresh time in seconds#
+                   'ENTRY_FORMAT_FUNCTION': '',
+                  }
 
 def get_config_filepath():
     if os.path.exists(CONFIG_FILE):
@@ -203,6 +205,19 @@ class Rss(BotPlugin):
             self.log.info('Pending check canceled.')
         else:
             self.log.info('No pending checks to cancel.')
+
+    def entry_format_function(self):
+        func_name = self.config.get('ENTRY_FORMAT_FUNCTION', '')
+        if func_name:
+            try:
+                func = eval(func_name)
+            except:
+                self.log.error('Could not find a function {}, defined by the '
+                               'ENTRY_FORMAT_FUNCTION config.'.format(func_name))
+            else:
+                return func
+
+        return '[{title}]({link}) --- {when}'.format
 
     @property
     def feeds(self):
@@ -470,9 +485,9 @@ class Rss(BotPlugin):
         # use yield/return here since there's no incoming message.
         dest = self._get_sender(roomfeed.message)
 
-        msg = '[{title}]({link}) --- {when}'
+        formatter = self.entry_format_function()
         for entry in entries:
-            self.send(dest, msg.format(**entry))
+            self.send(dest, formatter(**entry))
 
     def _register_roomfeed(self, feed_title, check_date, url, config, message):
         """
