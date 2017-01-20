@@ -26,7 +26,7 @@ CONFIG_FILEPATH_CHOICES = [os.path.join(os.path.dirname(__file__), 'err-rss.ini'
                            ]
 
 CONFIG_TEMPLATE = {'START_DATE': '01/01/2017',  # format: DD/MM/YYYY
-                   'INTERVAL': 15*60}
+                   'INTERVAL': 20} # 15*60
 
 
 def get_config_filepath():
@@ -128,7 +128,7 @@ class Feed(object):
         if room_id in self.roomfeeds:
             raise KeyError('The room {} is already registered for this feed.'.format(room_id))
 
-        self.roomfeeds[room_id] = RoomFeed(room_id, message, last_check)
+        self.roomfeeds[room_id] = RoomFeed(room_id=room_id, message=message, last_check=last_check)
 
     def remove_room(self, room_id):
         del self.roomfeeds[room_id]
@@ -215,7 +215,11 @@ class Rss(BotPlugin):
 
     @staticmethod
     def _get_room_id(message):
-        return message.frm.person
+        if message.chat['type'] == 'private':
+            return message.frm.id
+
+        return message.frm.room.id
+
 
     def add_feed(self, feed_title, url, config):
         # Create Feed object
