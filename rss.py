@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+"""
+Errbot plugin to redirect RSS feeds.
+"""
 
 import os
 import logging
@@ -28,7 +31,8 @@ CONFIG_FILEPATH_CHOICES = [os.path.join(os.path.dirname(__file__), 'err-rss.ini'
 CONFIG_TEMPLATE = {'START_DATE': '01/01/2017',  # format: DD/MM/YYYY
                    'INTERVAL': 5*60,  # refresh time in seconds#
                    'ENTRY_FORMAT_FUNCTION': '',
-                  }
+                   }
+
 
 def get_config_filepath():
     if os.path.exists(CONFIG_FILE):
@@ -92,6 +96,22 @@ def django_csrf_login(session, login_url, username, password, next_url=None):
                         data=login_data,
                         headers=dict(Referer=login_url))
     return resp
+
+
+def header_matches_url(header, url):
+    # Here we compare the end of the domain and the start of the path (if
+    # present) to the header.
+    __, domain, apath, *__ = urlsplit(url)
+    parts = header.lstrip('*').split('/', 1)
+    apath = apath.lstrip('/')
+    if len(parts) == 2:
+        # Domain and path in header. Match the path starts and domain ends.
+        header_domain, header_path = parts
+        return apath.startswith(header_path) and domain.endswith(header_domain)
+    else:
+        # Domain without os.path. Match the domain ends.
+        header_domain, = parts
+        return domain.endswith(header_domain)
 
 
 def try_method(f):
@@ -594,19 +614,3 @@ class Rss(BotPlugin):
                 self.interval = interval
                 return ('changed interval from '
                         '{}s to {}s'.format(old, self.interval))
-
-
-def header_matches_url(header, url):
-    # Here we compare the end of the domain and the start of the path (if
-    # present) to the header.
-    __, domain, apath, *__ = urlsplit(url)
-    parts = header.lstrip('*').split('/', 1)
-    apath = apath.lstrip('/')
-    if len(parts) == 2:
-        # Domain and path in header. Match the path starts and domain ends.
-        header_domain, header_path = parts
-        return apath.startswith(header_path) and domain.endswith(header_domain)
-    else:
-        # Domain without os.path. Match the domain ends.
-        header_domain, = parts
-        return domain.endswith(header_domain)
