@@ -546,8 +546,7 @@ class Rss(BotPlugin):
         # get the check date for this new feed
         feeds = sorted(get_feed_dates(feed['entries']))
         if feeds and check_date is None:
-            feed_first_date = feeds[0]
-            check_date = feed_first_date
+            check_date = feeds[0] # first feed's date
         else:
             check_date = arrow.now()
 
