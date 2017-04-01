@@ -4,6 +4,7 @@ Errbot plugin to redirect RSS feeds.
 """
 
 import os
+import os.path as path
 import logging
 import time
 import threading
