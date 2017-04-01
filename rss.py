@@ -544,11 +544,12 @@ class Rss(BotPlugin):
             return "Couldn't find a feed at {}".format(url)
 
         # get the check date for this new feed
-        feeds = sorted(get_feed_dates(feed['entries']))
-        if feeds and check_date is None:
-            check_date = feeds[0] # first feed's date
-        else:
-            check_date = arrow.now()
+        if check_date is None:
+            feeds = sorted(get_feed_dates(feed['entries']))
+            if feeds:
+                check_date = feeds[0] # first feed's date
+            else:
+                check_date = arrow.now()
 
         # register it
         return self._register_roomfeed(feed_title=feed['feed']['title'],
