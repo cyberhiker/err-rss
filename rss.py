@@ -15,13 +15,23 @@ from errbot import BotPlugin, botcmd, arg_botcmd
 
 
 #: Path to ini file for containing username and password by wildcard domain.
-CONFIG_FILE = '~/.err-rss.ini'
+CNFG_DIR = os.environ.get('ERRBOT_CFG_DIR', '/etc/errbot')
+CONFIG_FILE = path.expanduser('~/.err-rss.ini')
 CONFIG_FILEPATH_CHOICES = [path.join(path.dirname(__file__), 'err-rss.ini'),
-                           '~/.err-rss/config.ini',
-                           '/etc/errbot/err-rss.ini',
-                           '/etc/errbot/err-rss/err-rss.ini',
-                           '/etc/errbot/err-rss/config.ini',
+                           path.expanduser('~/.err-rss/config.ini'),
+                           path.join(CNFG_DIR, 'plugins', 'err-rss.ini'),
+                           path.join(CNFG_DIR, 'plugins', 'err-rss', 'err-rss.ini'),
+                           path.join(CNFG_DIR, 'plugins', 'err-rss', 'config.ini'),
                            ]
+
+
+def get_config_filepath():
+    if path.exists(CONFIG_FILE):
+        return CONFIG_FILE
+    for path in CONFIG_FILEPATH_CHOICES:
+        if path.exists(path):
+            return path
+
 
 def since(target_time):
     target_time = arrow.get(target_time)
@@ -90,17 +100,10 @@ class Rss(BotPlugin):
     INTERVAL = 20
     FEEDS = {}
 
-    def get_config_filepath(self):
-        if path.exists(CONFIG_FILE):
-            return CONFIG_FILE
-        for path in CONFIG_FILEPATH_CHOICES:
-            if path.exists(path):
-                return path
-
     def activate(self):
         super().activate()
         self.session = requests.Session()
-        self.read_ini(self.get_config_filepath())
+        self.read_ini(get_config_filepath())
         # Manually use a timer, since the poller implementation in errbot
         # breaks if you try to change the polling interval.
         self.checker = None
