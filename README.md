@@ -23,6 +23,7 @@ Usage
 ### Commands
 
     !rss watch <url>
+    !rss watchfrom <url> <date>
     !rss list
     !rss ignore <title>
     !rss interval
