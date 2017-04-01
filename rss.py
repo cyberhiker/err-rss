@@ -36,9 +36,9 @@ CONFIG_TEMPLATE = {'START_DATE': '01/01/2017',  # format: DD/MM/YYYY
 
 
 def get_config_filepath():
-    for path in CONFIG_FILEPATH_CHOICES:
-        if path.exists(path):
-            return path
+    for f in CONFIG_FILEPATH_CHOICES:
+        if path.exists(f):
+            return f
 
 
 def since(target_time):
