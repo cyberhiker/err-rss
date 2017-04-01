@@ -21,7 +21,6 @@ from errbot import BotPlugin, botcmd, arg_botcmd
 
 #: Path to ini file for containing username and password by wildcard domain.
 CNFG_DIR = os.environ.get('ERRBOT_CFG_DIR', '/etc/errbot')
-CONFIG_FILE = path.expanduser('~/.err-rss.ini')
 CONFIG_FILEPATH_CHOICES = [path.join(path.dirname(__file__), 'err-rss.ini'),
                            path.expanduser('~/.err-rss/config.ini'),
                            path.join(CNFG_DIR, 'plugins', 'err-rss.ini'),
@@ -36,8 +35,6 @@ CONFIG_TEMPLATE = {'START_DATE': '01/01/2017',  # format: DD/MM/YYYY
 
 
 def get_config_filepath():
-    if path.exists(CONFIG_FILE):
-        return CONFIG_FILE
     for path in CONFIG_FILEPATH_CHOICES:
         if path.exists(path):
             return path
@@ -46,14 +43,6 @@ def get_config_filepath():
 def since(target_time):
     target_time = arrow.get(target_time)
     return lambda entry: published_date(entry) > target_time
-
-
-def get_config_filepath():
-    if os.path.exists(CONFIG_FILE):
-        return CONFIG_FILE
-    for path in CONFIG_FILEPATH_CHOICES:
-        if os.path.exists(path):
-            return path
 
 
 def published_date(entry):
