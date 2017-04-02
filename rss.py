@@ -611,9 +611,9 @@ class Rss(BotPlugin):
                     self.remove_feed_from_room(feed.title, message)
                 except:
                     self.log.error("Error when removing feed [{}] from room "
-                                   "{}.".format(title, message.frm.person))
+                                   "{}.".format(feed.title, message.frm.person))
                 else:
-                    return 'ignoring [{}]({})'.format(title, roomfeed.url)
+                    return 'Ignoring [{}]({})'.format(feed.title, feed.url)
         else:
             return "What feed are you talking bout?"
 
