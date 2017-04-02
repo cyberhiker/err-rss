@@ -296,7 +296,7 @@ class Rss(BotPlugin):
                 del self.feeds[title]
 
     def _get_feeds_from_url(self, url):
-        for feed in self.feeds:
+        for title, feed in self.feeds.items():
             if feed.url == url:
                 yield feed
 
