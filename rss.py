@@ -600,7 +600,7 @@ class Rss(BotPlugin):
         return self._watch_feed(message, url, check_date=self.startup_date)
 
     @botcmd
-    @arg_botcmd('title', type=str)
+    @arg_botcmd('url', type=str)
     def rss_ignore(self, message, url):
         """Ignore a currently watched feed by name."""
         #roomfeed = self.feeds.get(title)
