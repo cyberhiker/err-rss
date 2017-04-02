@@ -577,7 +577,7 @@ class Rss(BotPlugin):
     def rss_list(self, message, args):
         """List the feeds being watched in this room."""
         room_id = self._get_room_id(message)
-        room_feeds = (feed for title, feed in self.feeds.items() if feed.isin(room_id))
+        room_feeds = [feed for title, feed in self.feeds.items() if feed.isin(room_id)]
         if not room_feeds:
             return 'You have 0 feeds. Add one!'
 
