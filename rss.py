@@ -127,7 +127,9 @@ def try_method(f):
 
 
 class RoomFeed(object):
-    """ Store the room ID, the message used to launch the feed and the last time the feed was checked. """
+    """ Store the room ID, the message used to launch the feed
+    and the last time the feed was checked.
+    """
     def __init__(self, room_id, message, last_check):
         self.room_id = room_id
         self.message = message
@@ -135,9 +137,11 @@ class RoomFeed(object):
 
 
 class Feed(object):
-    """ Store the title of the feed, the URL and config. Also a RoomFeed dict, where the key is the room_id. """
-    def __init__(self, name, url, config):
-        self.name = name
+    """ Store the title of the feed, the URL and config.
+    Also a RoomFeed dict, where the key is the room_id.
+    """
+    def __init__(self, title, url, config):
+        self.title = title
         self.url = url
         self.config = config
         self.roomfeeds = {}
@@ -151,9 +155,12 @@ class Feed(object):
         :return:
         """
         if room_id in self.roomfeeds:
-            raise KeyError('The room {} is already registered for this feed.'.format(room_id))
+            raise KeyError('The room {} is already registered '
+                           'for this feed.'.format(room_id))
 
-        self.roomfeeds[room_id] = RoomFeed(room_id=room_id, message=message, last_check=last_check)
+        self.roomfeeds[room_id] = RoomFeed(room_id=room_id,
+                                           message=message,
+                                           last_check=last_check)
 
     def remove_room(self, room_id):
         del self.roomfeeds[room_id]
@@ -266,37 +273,42 @@ class Rss(BotPlugin):
         """ Return a room ID to identify the feed reports destinations."""
         return message.frm if message.is_direct else message.to
 
-    def add_feed(self, feed_title, url, config):
+    def add_feed(self, title, url, config):
         # Create Feed object
-        new_feed = Feed(feed_title, url, config)
+        new_feed = Feed(title, url, config)
 
         with self.mutable('feeds') as feeds:
-            feeds[feed_title] = new_feed
+            feeds[title] = new_feed
 
-    def add_room_to_feed(self, feed_title, message, check_date):
+    def add_room_to_feed(self, title, message, check_date):
         with self.mutable('feeds') as feeds:
-            feeds[feed_title].add_room(room_id=self._get_room_id(message),
-                                       message=message,
-                                       last_check=check_date)
+            feeds[title].add_room(room_id=self._get_room_id(message),
+                                  message=message,
+                                  last_check=check_date)
 
-    def remove_feed_from_room(self, feed_title, message):
+    def remove_feed_from_room(self, title, message):
         room_id = self._get_room_id(message)
 
         with self.mutable('feeds') as feeds:
-            feeds[feed_title].remove_room(room_id=room_id)
+            feeds[title].remove_room(room_id=room_id)
 
-            if not self.feeds[feed_title].has_rooms():
-                del self.feeds[feed_title]
+            if not self.feeds[title].has_rooms():
+                del self.feeds[title]
 
-    def set_roomfeed_last_check(self, feed_title, room_id, date):
+    def _get_feeds_from_url(self, url):
+        for feed in self.feeds:
+            if feed.url == url:
+                yield feed
+
+    def set_roomfeed_last_check(self, title, room_id, date):
         with self.mutable('feeds') as feeds:
-            feeds[feed_title].roomfeeds[room_id].last_check = date
+            feeds[title].roomfeeds[room_id].last_check = date
 
-    def _is_feed_in_room(self, feed_title, room_id):
-        if feed_title not in self.feeds:
+    def _is_feed_in_room(self, title, room_id):
+        if title not in self.feeds:
             return False
 
-        return self.feeds[feed_title].isin(room_id)
+        return self.feeds[title].isin(room_id)
 
     def _find_url_ini_config(self, url):
         config = {}
@@ -412,14 +424,14 @@ class Rss(BotPlugin):
             feed_count_msg = 'Checking {} feeds...'
         self.log.info(feed_count_msg.format(num_feeds))
 
-        for feed_title, feed in self.feeds.items():  # TODO: make this thread safe
-            self._send_feed(feed_title, feed)
+        for title, feed in self.feeds.items():  # TODO: make this thread safe
+            self._send_feed(title, feed)
 
         # Record the time needed for the current set of feeds.
         end_time = arrow.get()
         self.delta = end_time - start_time
 
-    def _send_feed(self, feed_title, feed):
+    def _send_feed(self, title, feed):
         """
         :param str title: title of the feed
         :param Feed feed: the feed object
@@ -428,11 +440,11 @@ class Rss(BotPlugin):
         feed_content = self.read_feed(url=feed.url, config=feed.config)
 
         if not feed_content:
-            self.log.error('[{}] No feed found!'.format(feed_title))
+            self.log.error('[{}] No feed found!'.format(title))
             return
 
         if not feed_content['entries']:
-            self.log.info('[{}] No entries yet.'.format(feed_title))
+            self.log.info('[{}] No entries yet.'.format(title))
             return
 
         entries = feed_content['entries']
@@ -447,9 +459,10 @@ class Rss(BotPlugin):
 
         # for each room will report the corresponding entries
         for room_id, roomfeed in feed.roomfeeds.items():
-            self.log.info('[{}] Checking for entries for room {}.'.format(feed_title, roomfeed.message.frm))
+            self.log.info('[{}] Checking for entries for room '
+                          '{}.'.format(title, roomfeed.message.frm))
 
-            recent_entries = self._pick_recent_entries_from(feed_title=feed_title,
+            recent_entries = self._pick_recent_entries_from(title=title,
                                                             entries=entries,
                                                             check_date=roomfeed.last_check)
             if recent_entries:
@@ -457,11 +470,11 @@ class Rss(BotPlugin):
 
                 # Only update the last check time for this feed when there are recent entries.
                 newest = recent_entries[-1]
-                self.set_roomfeed_last_check(feed_title, room_id, newest['published'])
+                self.set_roomfeed_last_check(title, room_id, newest['published'])
                 self.log.info('[{}] Updated room {} last check time to {}'
-                              .format(feed_title, room_id, newest['when']))
+                              .format(title, room_id, newest['when']))
 
-    def _pick_recent_entries_from(self, feed_title, entries, check_date):
+    def _pick_recent_entries_from(self, title, entries, check_date):
         # Find the oldest and newest entries
         num_entries = len(entries)
         if num_entries == 1:
@@ -483,10 +496,10 @@ class Rss(BotPlugin):
             else:
                 found_msg = '[{}] Found {} entries since {}'
             about_then = check_date.humanize()
-            self.log.info(found_msg.format(feed_title, num_recent, about_then))
+            self.log.info(found_msg.format(title, num_recent, about_then))
         else:
             self.log.info('[{}] Found {} entries since {}, '
-                          'but none since {}'.format(feed_title, num_entries,
+                          'but none since {}'.format(title, num_entries,
                                                      oldest['when'],
                                                      newest['when']))
 
@@ -506,10 +519,12 @@ class Rss(BotPlugin):
         for entry in entries:
             self.send(dest, formatter(**entry))
 
-    def _register_roomfeed(self, feed_title, check_date, url, config, message):
+    def _register_roomfeed(self, title, check_date, url, config, message):
         """
 
-        :param str feed_title:
+        :param str title:
+            The title of the feed.
+
         :param arrow.Arrow check_date:
         :param str url:
         :param dict config:
@@ -519,19 +534,19 @@ class Rss(BotPlugin):
         room_id = self._get_room_id(message)
 
         # Check if the feed is being watched for this room
-        if self._is_feed_in_room(feed_title=feed_title, room_id=room_id):
-            return "I am already watching '{}' for this room.".format(feed_title)
+        if self._is_feed_in_room(title=title, room_id=room_id):
+            return "I am already watching '{}' for this room.".format(title)
 
         # Check if the feed is already in the registry, do it if it's not
-        if feed_title not in self.feeds:
-            self.add_feed(feed_title, url, config)
+        if title not in self.feeds:
+            self.add_feed(title, url, config)
 
         # add the room to the feed
-        self.add_room_to_feed(feed_title=feed_title, message=message, check_date=check_date)
+        self.add_room_to_feed(title=title, message=message, check_date=check_date)
 
         # Report new feed watch
-        self.log.info('Watching {!r} for {!s}'.format(feed_title, message.frm))
-        return 'watching [{}]({})'.format(feed_title, url)
+        self.log.info('Watching {!r} for {!s}'.format(title, message.frm))
+        return 'watching [{}]({})'.format(title, url)
 
     def _watch_feed(self, message, url, check_date=None):
         """Watch a new feed by URL and start checking date."""
@@ -552,7 +567,7 @@ class Rss(BotPlugin):
                 check_date = arrow.now()
 
         # register it
-        return self._register_roomfeed(feed_title=feed['feed']['title'],
+        return self._register_roomfeed(title=feed['feed']['title'],
                                        check_date=check_date,
                                        url=url,
                                        config=config,
@@ -562,14 +577,15 @@ class Rss(BotPlugin):
     def rss_list(self, message, args):
         """List the feeds being watched in this room."""
         room_id = self._get_room_id(message)
-        room_feeds = (feed for feed_title, feed in self.feeds.items() if feed.isin(room_id))
+        room_feeds = (feed for title, feed in self.feeds.items() if feed.isin(room_id))
+        if not room_feeds:
+            return 'You have 0 feeds. Add one!'
+
         for feed in room_feeds:
             last_check = feed.roomfeeds[room_id].last_check.humanize()
-            yield '[{title}]({url}) {when}'.format(title=feed.name,
+            yield '[{title}]({url}) {when}'.format(title=feed.title,
                                                    url=feed.url,
                                                    when=last_check)
-        else:
-            yield 'You have 0 feeds. Add one!'
 
     @botcmd
     @arg_botcmd('date', type=str)
@@ -585,19 +601,21 @@ class Rss(BotPlugin):
 
     @botcmd
     @arg_botcmd('title', type=str)
-    def rss_ignore(self, message, title):
+    def rss_ignore(self, message, url):
         """Ignore a currently watched feed by name."""
-        roomfeed = self.feeds.get(title)
-        if roomfeed and roomfeed.isin(message.frm.person):
-            try:
-                self.remove_feed_from_room(title, message)
-            except:
-                self.log.error("Error when removing feed [{}] from room "
-                               "{}.".format(title, message.frm.person))
-            else:
-                return 'ignoring [{}]({})'.format(title, roomfeed.url)
+        #roomfeed = self.feeds.get(title)
+        feeds = self._get_feeds_from_url(url)
+        for feed in self._get_feeds_from_url(url):
+            if feed.isin(message.frm.person):
+                try:
+                    self.remove_feed_from_room(feed.title, message)
+                except:
+                    self.log.error("Error when removing feed [{}] from room "
+                                   "{}.".format(title, message.frm.person))
+                else:
+                    return 'ignoring [{}]({})'.format(title, roomfeed.url)
         else:
-            return "what feed are you talking bout?"
+            return "What feed are you talking bout?"
 
     @botcmd
     def rss_interval(self, message, interval=None):
