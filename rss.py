@@ -588,13 +588,13 @@ class Rss(BotPlugin):
                                                    when=last_check)
 
     @botcmd
-    @arg_botcmd('date', type=str, default='')
     @arg_botcmd('url', type=str)
-    def rss_watchfrom(self, message, url, date):
+    @arg_botcmd('--date', dest='date', type=str, default=None)
+    def rss_watchfrom(self, message, url, date=None):
         """Watch a new feed by URL starting from `date`.
         If `date` is None, will use `arrow.now()` as starting date.
         """
-        if not date:
+        if date is None:
             check_date = arrow.now()
         else:
             check_date = read_date(date)
