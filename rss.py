@@ -22,22 +22,23 @@ from errbot import BotPlugin, botcmd, arg_botcmd
 
 #: Path to ini file for containing username and password by wildcard domain.
 CNFG_DIR = os.environ.get('ERRBOT_CFG_DIR', '/etc/errbot')
-CONFIG_FILEPATH_CHOICES = [path.join(path.dirname(__file__), 'err-rss.ini'),
-                           path.expanduser('~/.err-rss/config.ini'),
-                           path.join(CNFG_DIR, 'plugins', 'err-rss.ini'),
-                           path.join(CNFG_DIR, 'plugins', 'err-rss', 'err-rss.ini'),
-                           path.join(CNFG_DIR, 'plugins', 'err-rss', 'config.ini'),
-                           ]
+CONFIG_FILEPATH_CHOICES = [
+    os.path.join(os.path.dirname(__file__), 'err-rss.ini'),
+    os.path.expanduser('~/.err-rss/config.ini'),
+    os.path.join(CNFG_DIR, 'plugins', 'err-rss.ini'),
+    os.path.join(CNFG_DIR, 'plugins', 'err-rss', 'err-rss.ini'),
+    os.path.join(CNFG_DIR, 'plugins', 'err-rss', 'config.ini'),
+]
 
-CONFIG_TEMPLATE = {'START_DATE': '01/01/2017',  # format: DD/MM/YYYY
-                   'INTERVAL': 5*60,  # refresh time in seconds#
-                   'ENTRY_FORMAT_FUNCTION': '',
-                   }
+CONFIG_TEMPLATE = {
+    'START_DATE': '01/01/2019',  # format: DD/MM/YYYY
+    'INTERVAL': 5*60,  # refresh time in seconds#
+}
 
 
 def get_config_filepath():
     for f in CONFIG_FILEPATH_CHOICES:
-        if path.exists(f):
+        if os.path.exists(f):
             return f
 
 
@@ -50,16 +51,13 @@ def published_date(entry):
     return entry.get('published')
 
 
-def read_date(dt):
+def read_date(date):
     """This reads a date in an unknown format."""
-    return arrow.get(dparser.parse(dt))
+    return arrow.get(dparser.parse(date))
 
 
 def get_feed_dates(entries):
     """ Return a list with the dates for each entry in `entries`. If empty will return []."""
-    if not entries:
-        return []
-
     return [read_date(published_date(entry)) for entry in entries]
 
 
@@ -90,32 +88,36 @@ def django_csrf_login(session, login_url, username, password, next_url=None):
     if next_url is None:
         next_url = '/'
 
-    login_data = dict(username=username,
-                      password=password,
-                      csrfmiddlewaretoken=csrftoken,
-                      next=next_url)
+    login_data = {
+        'username': username,
+        'password': password,
+        'csrfmiddlewaretoken': csrftoken,
+        'next': next_url
+    }
 
     # get response from next_url
-    resp = session.post(login_url,
-                        data=login_data,
-                        headers=dict(Referer=login_url))
+    resp = session.post(
+        login_url,
+        data=login_data,
+        headers={'Referer': login_url}
+    )
     return resp
 
 
 def header_matches_url(header, url):
     # Here we compare the end of the domain and the start of the path (if
     # present) to the header.
-    __, domain, apath, *__ = urlsplit(url)
+    __, domain, path, *__ = urlsplit(url)
     parts = header.lstrip('*').split('/', 1)
-    apath = apath.lstrip('/')
+    path = path.lstrip('/')
     if len(parts) == 2:
         # Domain and path in header. Match the path starts and domain ends.
         header_domain, header_path = parts
-        return apath.startswith(header_path) and domain.endswith(header_domain)
-    else:
-        # Domain without os.path. Match the domain ends.
-        header_domain, = parts
-        return domain.endswith(header_domain)
+        return path.startswith(header_path) and domain.endswith(header_domain)
+
+    # Domain without os.path. Match the domain ends.
+    header_domain, = parts
+    return domain.endswith(header_domain)
 
 
 def try_method(f):
@@ -130,6 +132,7 @@ class RoomFeed(object):
     """ Store the room ID, the message used to launch the feed
     and the last time the feed was checked.
     """
+
     def __init__(self, room_id, message, last_check):
         self.room_id = room_id
         self.message = message
@@ -140,6 +143,7 @@ class Feed(object):
     """ Store the title of the feed, the URL and config.
     Also a RoomFeed dict, where the key is the room_id.
     """
+
     def __init__(self, title, url, config):
         self.title = title
         self.url = url
@@ -155,12 +159,16 @@ class Feed(object):
         :return:
         """
         if room_id in self.roomfeeds:
-            raise KeyError('The room {} is already registered '
-                           'for this feed.'.format(room_id))
+            raise KeyError(
+                'The room {} is already registered for this feed.'.format(
+                    room_id)
+            )
 
-        self.roomfeeds[room_id] = RoomFeed(room_id=room_id,
-                                           message=message,
-                                           last_check=last_check)
+        self.roomfeeds[room_id] = RoomFeed(
+            room_id=room_id,
+            message=message,
+            last_check=last_check
+        )
 
     def remove_room(self, room_id):
         del self.roomfeeds[room_id]
@@ -177,8 +185,11 @@ class Rss(BotPlugin):
 
     def configure(self, configuration):
         if configuration is not None and configuration != {}:
-            config = dict(chain(CONFIG_TEMPLATE.items(),
-                                configuration.items()))
+            config_items = chain(
+                CONFIG_TEMPLATE.items(),
+                configuration.items()
+            )
+            config = dict(config_items)
         else:
             config = CONFIG_TEMPLATE
         super().configure(config)
@@ -203,7 +214,7 @@ class Rss(BotPlugin):
         self.stop_checking_feeds()
 
     def read_ini(self, filepath):
-        """Read and store the configuration in the ini file at fileos.path.
+        """Read and store the configuration in the ini file at fileos.os.path.
 
         Note: this method silently fails if given a nonsensicle filepath, but
         it does log the number of sections it read.
@@ -212,7 +223,9 @@ class Rss(BotPlugin):
         """
         self.ini = configparser.ConfigParser()
         self.ini.read(os.path.expanduser(filepath))
-        self.log.info('Read {} sections from {}'.format(len(self.ini), filepath))
+        self.log.info(
+            'Read {} sections from {}'.format(len(self.ini), filepath)
+        )
 
     def schedule_next_check(self):
         """Schedule the next feed check.
@@ -222,7 +235,7 @@ class Rss(BotPlugin):
         """
         self.stop_checking_feeds()
         if self.interval:
-            job = lambda: try_method(self.check_feeds)
+            def job(): return try_method(self.check_feeds)
             self.checker = threading.Timer(self.interval, job)
             self.checker.start()
             self.log.info('Scheduled next check in {}s'.format(self.interval))
@@ -238,16 +251,6 @@ class Rss(BotPlugin):
             self.log.info('No pending checks to cancel.')
 
     def entry_format_function(self):
-        func_name = self.config.get('ENTRY_FORMAT_FUNCTION', '')
-        if func_name:
-            try:
-                func = eval(func_name)
-            except:
-                self.log.error('Could not find a function {}, defined by the '
-                               'ENTRY_FORMAT_FUNCTION config.'.format(func_name))
-            else:
-                return func
-
         return '[{title}]({link}) --- {when}'.format
 
     @property
@@ -470,7 +473,8 @@ class Rss(BotPlugin):
 
                 # Only update the last check time for this feed when there are recent entries.
                 newest = recent_entries[-1]
-                self.set_roomfeed_last_check(title, room_id, newest['published'])
+                self.set_roomfeed_last_check(
+                    title, room_id, newest['published'])
                 self.log.info('[{}] Updated room {} last check time to {}'
                               .format(title, room_id, newest['when']))
 
@@ -485,24 +489,25 @@ class Rss(BotPlugin):
             oldest, *__, newest = entries
 
         # Find recent entries
-        is_recent = lambda entry: published_date(entry) > check_date
+        def is_recent(entry): return published_date(entry) > check_date
         recent_entries = tuple(e for e in entries if is_recent(e))
         num_recent = len(recent_entries)
 
         if recent_entries:
             # Add recent entries to report
-            if num_recent == 1:
-                found_msg = '[{}] Found {} entry since {}'
-            else:
-                found_msg = '[{}] Found {} entries since {}'
+            entry = 'entry' if num_recent == 1 else 'entries'
+            found_msg = '[{}] Found {} {} since {}'
             about_then = check_date.humanize()
-            self.log.info(found_msg.format(title, num_recent, about_then))
+            self.log.info(found_msg.format(
+                title, num_recent, entry, about_then)
+            )
         else:
-            self.log.info('[{}] Found {} entries since {}, '
-                          'but none since {}'.format(title, num_entries,
-                                                     oldest['when'],
-                                                     newest['when']))
-
+            self.log.info('[{}] Found {} entries since {}, but none since {}'.format(
+                title,
+                num_entries,
+                oldest['when'],
+                newest['when'])
+            )
         return recent_entries
 
     def _send_entries_to_room(self, entries, roomfeed):
@@ -521,7 +526,6 @@ class Rss(BotPlugin):
 
     def _register_roomfeed(self, title, check_date, url, config, message):
         """
-
         :param str title:
             The title of the feed.
 
@@ -542,7 +546,11 @@ class Rss(BotPlugin):
             self.add_feed(title, url, config)
 
         # add the room to the feed
-        self.add_room_to_feed(title=title, message=message, check_date=check_date)
+        self.add_room_to_feed(
+            title=title,
+            message=message,
+            check_date=check_date
+        )
 
         # Report new feed watch
         self.log.info('Watching {!r} for {!s}'.format(title, message.frm))
@@ -560,45 +568,45 @@ class Rss(BotPlugin):
 
         # get the check date for this new feed
         if check_date is None:
-            feeds = sorted(get_feed_dates(feed['entries']))
-            if feeds:
-                check_date = feeds[0] # first feed's date
-            else:
-                check_date = arrow.now()
+            feeds = sorted(get_feed_dates(feed.get('entries', [])))
+            check_date = feeds[0] if feeds else arrow.utcnow()
 
         # register it
-        return self._register_roomfeed(title=feed['feed']['title'],
-                                       check_date=check_date,
-                                       url=url,
-                                       config=config,
-                                       message=message)
+        return self._register_roomfeed(
+            title=feed['feed']['title'],
+            check_date=check_date,
+            url=url,
+            config=config,
+            message=message
+        )
 
     @botcmd
     def rss_list(self, message, args):
         """List the feeds being watched in this room."""
         room_id = self._get_room_id(message)
-        room_feeds = [feed for title, feed in self.feeds.items() if feed.isin(room_id)]
+        room_feeds = [
+            feed for title, feed in self.feeds.items()
+            if feed.isin(room_id)
+        ]
         if not room_feeds:
             return 'You have 0 feeds. Add one!'
 
         for feed in room_feeds:
             last_check = feed.roomfeeds[room_id].last_check.humanize()
-            yield '[{title}]({url}) {when}'.format(title=feed.title,
-                                                   url=feed.url,
-                                                   when=last_check)
+            yield '[{title}]({url}) {when}'.format(
+                title=feed.title,
+                url=feed.url,
+                when=last_check
+            )
 
     @botcmd
     @arg_botcmd('url', type=str)
     @arg_botcmd('--date', dest='date', type=str, default=None)
     def rss_watchfrom(self, message, url, date=None):
         """Watch a new feed by URL starting from `date`.
-        If `date` is None, will use `arrow.now()` as starting date.
+        If `date` is None, will use `arrow.utcnow()` as starting date.
         """
-        if date is None:
-            check_date = arrow.now()
-        else:
-            check_date = read_date(date)
-
+        check_date = arrow.utcnow() if date is None else read_date(date)
         return self._watch_feed(message, url, check_date=check_date)
 
     @botcmd
@@ -613,34 +621,38 @@ class Rss(BotPlugin):
         """Ignore a currently watched feed by name."""
         #roomfeed = self.feeds.get(title)
         feeds = self._get_feeds_from_url(url)
-        for feed in self._get_feeds_from_url(url):
+        for feed in feeds:
             if feed.isin(message.frm.person):
                 try:
                     self.remove_feed_from_room(feed.title, message)
                 except:
-                    self.log.error("Error when removing feed [{}] from room "
-                                   "{}.".format(feed.title, message.frm.person))
+                    self.log.error(
+                        "Error when removing feed [{}] from room "
+                        "{}.".format(feed.title, message.frm.person)
+                    )
                 else:
-                    return 'Ignoring [{}]({})'.format(feed.title, feed.url)
+                    return "Ignoring [{}]({})".format(feed.title, feed.url)
         else:
-            return "What feed are you talking bout?"
+            return "What feed are you talking about?"
 
     @botcmd
     def rss_interval(self, message, interval=None):
         """Get or set the polling interval."""
         if not interval:
-            return 'current interval is {}s'.format(self.interval)
+            return "current interval is {}s".format(self.interval)
+
+        try:
+            interval = int(interval)
+        except ValueError:
+            msg = (
+                "That's not how this works. Give me a number of "
+                "seconds besides {} (that's what it is right now)."
+            )
+            return msg.format(self.interval)
+
+        if interval == self.interval:
+            return "got it!"
         else:
-            try:
-                interval = int(interval)
-            except ValueError:
-                msg = ("That's not how this works. Give me a number of "
-                       "seconds besides {} (that's what it is right now).")
-                return msg.format(self.interval)
-            if interval == self.interval:
-                return 'got it boss!'
-            else:
-                old = self.interval
-                self.interval = interval
-                return ('changed interval from '
-                        '{}s to {}s'.format(old, self.interval))
+            old = self.interval
+            self.interval = interval
+            return "changed interval from {}s to {}s".format(old, self.interval)
