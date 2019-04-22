@@ -9,7 +9,7 @@ import logging
 BACKEND = 'Text'  # Errbot will start in text mode (console only mode) and will answer commands from there.
 
 BOT_DATA_DIR = os.environ.get('BOT_DATA_DIR', './data')
-BOT_EXTRA_PLUGIN_DIR = os.environ.get('BOT_EXTRA_PLUGIN_DIR')
+BOT_EXTRA_PLUGIN_DIR = os.environ.get('BOT_EXTRA_PLUGIN_DIR', '.')
 
 BOT_LOG_FILE = os.environ.get('BOT_LOG_FILE', 'errbot.log')
 BOT_LOG_LEVEL = logging.DEBUG
