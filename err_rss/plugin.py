@@ -39,7 +39,6 @@ class Rss(BotPlugin):
     """RSS Feeder plugin for Errbot."""
     def configure(self, configuration):
         config = DEFAULT_CONFIG
-        breakpoint()
         if configuration:
             config.update(configuration)
         super().configure(config)
@@ -49,27 +48,16 @@ class Rss(BotPlugin):
         self.session = requests.Session()
 
         config_file_path = get_config_filepath()
-        breakpoint()
         if config_file_path:
             self.read_ini(config_file_path)
+
+        self._feed_readers = {}
 
         # Manually use a timer, since the poller implementation in errbot
         # breaks if you try to change the polling interval.
         self.checker = None
         then = arrow.get()
         self.delta = arrow.get() - then
-
-        authenticator = Authenticator(
-            url=self.config['login_url'],
-            username=self.config['username'],
-            password=self.config['password']
-        )
-
-        self.feed_reader = FeedReader(
-            http_session=self.session,
-            authenticator=authenticator,
-            logger=self.log
-        )
         self.check_feeds()
 
     def deactivate(self):
@@ -218,11 +206,10 @@ class Rss(BotPlugin):
         for header, section in self.ini.items():
             if header_matches_url(header, url):
                 config = dict(section)
-                self.log.debug('Matched "{}" to "{}"'.format(url, header))
-            else:
-                self.log.debug('"{}" is not a match'.format(header))
+                self.log.debug(f'Matched "{url}" to "{header}".')
+                return config
+        self.log.error(f'ERROR: Found no RSS config match for "{url}".')
 
-        return config
 
     @property
     def startup_date(self):
@@ -236,7 +223,7 @@ class Rss(BotPlugin):
     @interval.setter
     def interval(self, value):
         if value > 0:
-            self.log.info('New update interval: {}s'.format(value))
+            self.log.info(f'New update interval: {value}s')
             self.config['INTERVAL'] = value
             self.schedule_next_check()
         else:
@@ -251,44 +238,35 @@ class Rss(BotPlugin):
         :return:
         """
         feed_content = self.read_feed(url=feed.url)
-
         if not feed_content:
-            self.log.error('[{}] No feed found!'.format(title))
+            self.log.error(f'[{title}] No feed found!')
             return
-
         if not feed_content['entries']:
-            self.log.info('[{}] No entries yet.'.format(title))
+            self.log.info(f'[{title}] No entries yet.')
             return
-
         entries = feed_content['entries']
-
         # Touch up each entry.
         for entry in entries:
             entry['published'] = read_date(published_date(entry))
             entry['when'] = entry['published'].humanize()
-
         # sort entries
         entries.sort(key=published_date)
-
         # for each room will report the corresponding entries
+        feed_reader = self._feed_reader(url=feed.url)
         for room_id, roomfeed in feed.roomfeeds.items():
             self.log.info(f'[{title}] Checking for entries for room {roomfeed.message.frm}.')
-
-            recent_entries = self.feed_reader.pick_recent_entries_from(
+            recent_entries = feed_reader.pick_recent_entries_from(
                 title=title,
                 entries=entries,
                 check_date=roomfeed.last_check
             )
-
             if recent_entries:
                 self._send_entries_to_room(recent_entries, roomfeed)
-
                 # Only update the last check time for this feed when there are recent entries.
                 newest = recent_entries[-1]
                 self.set_roomfeed_last_check(
                     title, room_id, newest['published'])
-                self.log.info('[{}] Updated room {} last check time to {}'
-                              .format(title, room_id, newest['when']))
+                self.log.info(f"[{title}] Updated room {room_id} last check time to {newest['when']}")
 
     def _send_entries_to_room(self, entries, roomfeed):
         """
@@ -319,7 +297,7 @@ class Rss(BotPlugin):
 
         # Check if the feed is being watched for this room
         if self._is_feed_in_room(title=title, room_id=room_id):
-            return "I am already watching '{}' for this room.".format(title)
+            return f"I am already watching '{title}' for this room."
 
         # Check if the feed is already in the registry, do it if it's not
         if title not in self.feeds:
@@ -330,11 +308,26 @@ class Rss(BotPlugin):
 
         # Report new feed watch
         self.log.info('Watching {!r} for {!s}'.format(title, message.frm))
-        return 'watching [{}]({})'.format(title, url)
+        return f'watching [{title}]({url})'
 
     def _get_first_entry_date(self, entries):
         feed_dates = sorted([read_date(entry.get('published')) for entry in entries])
         return feed_dates[0] if feed_dates else None
+
+    def _feed_reader(self, url: str) -> FeedReader:
+        if url not in self._feed_readers:
+            authenticator = Authenticator(
+                url=self.config['login_url'],
+                username=self.config['username'],
+                password=self.config['password']
+            )
+
+            self._feed_readers[url] = FeedReader(
+                http_session=self.session,
+                authenticator=authenticator,
+                logger=self.log
+            )
+        return self._feed_readers[url]
 
     def _watch_feed(self, message, url, check_date=None):
         """Watch a new feed by URL and start checking date."""
@@ -342,9 +335,10 @@ class Rss(BotPlugin):
         config = self._find_url_ini_config(url)
 
         # Read in the feed.
-        feed = self.feed_reader.read(url=url)
+        feed_reader = self._feed_reader(url)
+        feed = feed_reader.read(url=url)
         if feed is None:
-            return "Couldn't find a feed at {}".format(url)
+            return f"Couldn't find a feed at {url}"
 
         # get the check date for this new feed
         if check_date is None:
