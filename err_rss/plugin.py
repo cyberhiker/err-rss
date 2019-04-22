@@ -316,12 +316,12 @@ class Rss(BotPlugin):
 
     def _feed_reader(self, url: str) -> FeedReader:
         if url not in self._feed_readers:
+            config = self._find_url_ini_config(url)
             authenticator = Authenticator(
-                url=self.config['login_url'],
-                username=self.config['username'],
-                password=self.config['password']
+                url=config['login_url'],
+                username=config['username'],
+                password=config['password']
             )
-
             self._feed_readers[url] = FeedReader(
                 http_session=self.session,
                 authenticator=authenticator,
@@ -331,10 +331,6 @@ class Rss(BotPlugin):
 
     def _watch_feed(self, message, url, check_date=None):
         """Watch a new feed by URL and start checking date."""
-        # Find the last matching ini section using the domain of the url.
-        config = self._find_url_ini_config(url)
-
-        # Read in the feed.
         feed_reader = self._feed_reader(url)
         feed = feed_reader.read(url=url)
         if feed is None:
