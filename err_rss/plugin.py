@@ -76,7 +76,7 @@ class Rss(BotPlugin):
         """
         self.ini = configparser.ConfigParser()
         self.ini.read(os.path.expanduser(filepath))
-        self.log.info('Read {} sections from {}'.format(len(self.ini), filepath))
+        self.log.info(f'Read {len(self.ini)} sections from {filepath}: {self.ini}')
 
     def schedule_next_check(self):
         """Schedule the next feed check.
