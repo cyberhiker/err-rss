@@ -5,6 +5,7 @@ import os
 import logging
 import threading
 import configparser
+from typing import Union, Dict
 
 import arrow
 import requests
@@ -51,7 +52,7 @@ class Rss(BotPlugin):
         if config_file_path:
             self.read_ini(config_file_path)
         else:
-            self.log.error('Could not find any configuration file.')
+            raise EnvironmentError('Could not find any configuration file.')
 
         self._feed_readers = {}
 
@@ -76,7 +77,6 @@ class Rss(BotPlugin):
         """
         self.ini = configparser.ConfigParser()
         self.ini.read(os.path.expanduser(filepath))
-        breakpoint()
         self.log.info('Read {} sections from {}'.format(len(self.ini), filepath))
 
     def schedule_next_check(self):
