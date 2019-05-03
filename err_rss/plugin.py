@@ -5,7 +5,6 @@ import os
 import logging
 import threading
 import configparser
-from typing import Union, Dict
 
 import arrow
 import requests
@@ -203,7 +202,7 @@ class Rss(BotPlugin):
             return False
         return self.feeds[title].isin(room_id)
 
-    def _find_url_ini_config(self, url: str) -> Union[Dict[str, str], None]:
+    def _find_url_ini_config(self, url):
         self.log.debug('Finding ini section for "{}"...'.format(url))
         for header, section in self.ini.items():
             if header_matches_url(header, url):
