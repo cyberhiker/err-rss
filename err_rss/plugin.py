@@ -50,6 +50,8 @@ class Rss(BotPlugin):
         config_file_path = get_config_filepath()
         if config_file_path:
             self.read_ini(config_file_path)
+        else:
+            self.log.error('Could not find any configuration file.')
 
         self._feed_readers = {}
 
