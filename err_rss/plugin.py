@@ -11,6 +11,7 @@ import requests
 from errbot import BotPlugin, botcmd, arg_botcmd
 import dateutil.parser as dparser
 
+from typing import Union
 from .login import Authenticator
 from .room_feed import Feed
 from .config import DEFAULT_CONFIG, get_config_filepath
